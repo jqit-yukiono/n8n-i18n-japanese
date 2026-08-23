@@ -276,6 +276,9 @@ jobs:
                  `chore: Copilot レビュー指摘 (#${{ github.event.issue.number }}) を自動修正`
             4. 判断必要 / 修正不能な指摘が残った場合は無理に修正せず、
                `gh pr comment` で「対応保留」項目を箇条書きで PR に明示してから終了する。
+               このコメント本文の末尾には必ず独立した行で `/jenkins-re-review`
+               を付ける（Jenkins 側がこのコマンドを検知してレビューコメントを
+               再取得するため）。
             5. push 後、PR の synchronize で Jenkins が再レビューする。
                VERDICT が APPROVE になるまで本 workflow が再起動される。
 

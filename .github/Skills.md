@@ -59,6 +59,15 @@
 
 上限: 同一 PR で Jenkins レビューコメントが 5 回到達した時点で `needs-human-review` ラベル付与 + 自動修正停止。
 
+### auto-fix の「対応保留」返信
+
+`auto-fix` job が指摘事項を機械修正しきれず PR に「対応保留」コメントを返す際:
+
+- 投稿は `secrets.RELEASE_PAT`（アカウント: `YukiOno-1015`）名義で行われる。
+  `JENKINS_BOT_USERNAME`（VERDICT 投稿元、アカウント: `jqit-yukiono`）とは別アカウント。
+- コメント本文の末尾に必ず独立した行で `/jenkins-re-review` を付ける。
+  Jenkins 側がこのコマンドを検知してレビューコメントを再取得する運用のため。
+
 ## Branch protection / ruleset
 
 - main の ruleset ID: `16798607`
