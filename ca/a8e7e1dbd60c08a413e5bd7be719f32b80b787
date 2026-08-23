@@ -1,0 +1,21 @@
+.github/Skills.md
+  s_b963421d6961a5::t_2be97a21e233e1 62-70
+.github/workflows/copilot-review-handler.yml
+  s_b963421d6961a5::t_bf4770e4cda007 279-281
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.23",
+  "base_commit_sha": "caa8e7e1dbd60c08a413e5bd7be719f32b80b787",
+  "prompts": {},
+  "sessions": {
+    "s_b963421d6961a5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8dca65c0-af28-44ca-9039-a17718ff4d95",
+        "model": "unknown"
+      },
+      "human_author": "jqit-yukiono <jqit.yuki.ono@gmail.com>"
+    }
+  }
+}
