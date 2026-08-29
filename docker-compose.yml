@@ -1,6 +1,6 @@
 services:
   n8ntest:
-    image: n8nio/n8n:2.36.7
+    image: n8nio/n8n:2.36.8
     container_name: n8ntest
     ports:
       - "15678:5678"
