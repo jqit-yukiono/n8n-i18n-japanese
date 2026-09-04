@@ -3217,7 +3217,7 @@
   "settings.communityNodes.viewDocsAction.label": "ドキュメント",
   "settings.communityNodes.uninstallAction.label": "パッケージをアンインストール",
   "settings.communityNodes.upToDate.tooltip": "最新の状態です",
-  "settings.communityNodes.failedToLoad.tooltip": "このパッケージに問題があります。この問題を解決するには、一度アンインストールしてから再度インストールしてみてください。",
+  "settings.communityNodes.failedToLoad.tooltip": "このパッケージの読み込みに失敗しました。破損しているか、より新しいバージョンの n8n が必要な可能性があります。アンインストールして再インストールするか、n8n をアップグレードしてください。",
   "settings.communityNodes.managedByEnv": "コミュニティパッケージは環境変数で管理されており、UI から変更することはできません。",
   "settings.communityNodes.fetchError.title": "インストール済みパッケージの取得に問題が発生しました",
   "settings.communityNodes.fetchError.message": "インターネット接続またはn8nインスタンスに問題がある可能性があります",
