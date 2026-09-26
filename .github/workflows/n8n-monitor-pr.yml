@@ -122,7 +122,9 @@ jobs:
         if: steps.already_done.outputs.skip == 'false'
         run: |
           set -euo pipefail
-          npm i -g corepack@0.31
+          # corepack 0.31 cannot run pnpm 12 (looks for bin/pnpm.cjs; pnpm 12 ships a native
+          # binary), which broke `pnpm install` from n8n 2.40. 0.36 handles it.
+          npm i -g corepack@0.36
           corepack enable
 
       - name: Checkout n8n source
