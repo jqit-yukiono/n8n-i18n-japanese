@@ -1,0 +1,21 @@
+.github/workflows/n8n-monitor-pr.yml
+  s_abc83cecb39ccd::t_327de4c284d621 125-127
+.github/workflows/release-ja.yml
+  s_abc83cecb39ccd::t_85f6203abb4db5 147-149
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3486e4705068e1a605f7d33242e69c1edccdf061",
+  "prompts": {},
+  "sessions": {
+    "s_abc83cecb39ccd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0ecb265d-e089-44ab-bfcc-b78ed2a9a24f",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jqit-yukiono <jqit.yuki.ono@gmail.com>"
+    }
+  }
+}
