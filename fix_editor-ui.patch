@@ -1,7 +1,7 @@
 diff --git a/packages/frontend/editor-ui/src/app/App.vue b/packages/frontend/editor-ui/src/app/App.vue
 --- a/packages/frontend/editor-ui/src/app/App.vue
 +++ b/packages/frontend/editor-ui/src/app/App.vue
-@@ -20,8 +20,10 @@
+@@ -23,8 +23,10 @@
  import LoadingView from '@/app/views/LoadingView.vue';
  import { locale } from '@n8n/design-system';
  import { registerTimeAgoLocale } from '@/app/utils/timeAgoLocale';
@@ -13,7 +13,7 @@ diff --git a/packages/frontend/editor-ui/src/app/App.vue b/packages/frontend/edi
  import { useRootStore } from '@n8n/stores/useRootStore';
  import axios from 'axios';
  import { computed, onMounted, provide, ref, shallowRef, watch } from 'vue';
-@@ -108,7 +110,11 @@
+@@ -111,7 +113,11 @@
  watch(
  	defaultLocale,
  	async (newLocale) => {
