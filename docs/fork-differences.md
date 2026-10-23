@@ -1,6 +1,6 @@
 # フォーク元との違い
 
-本リポジトリ ([`YukiOno-1015/n8n-i18n-japanese`](https://github.com/YukiOno-1015/n8n-i18n-japanese)) は
+本リポジトリ ([`jqit-yukiono/n8n-i18n-japanese`](https://github.com/jqit-yukiono/n8n-i18n-japanese)) は
 フォーク元 ([`nemumusito/n8n-i18n-japanese`](https://github.com/nemumusito/n8n-i18n-japanese)、
 大元は [`other-blowsnow/n8n-i18n-chinese`](https://github.com/other-blowsnow/n8n-i18n-chinese)) を
 ベースに、**翻訳エンジンの刷新**と **CI/CD の完全自動化**を中心に大幅に拡張しています。
@@ -29,8 +29,8 @@
 - **フォーク元**: `script/translate.js` が Gemini API（`GEMINI_API_KEY` / `gemini-pro`）を直接呼び、
   ローカル実行で翻訳していた。
 - **本フォーク**: GitHub Actions 上で **Claude Code** により翻訳する方式へ移行
-  （[#22](https://github.com/YukiOno-1015/n8n-i18n-japanese/pull/22)）。さらに翻訳処理を再設計し
-  （[#25](https://github.com/YukiOno-1015/n8n-i18n-japanese/pull/25)）、ソート・全文書き換えなどの
+  （[#22](https://github.com/jqit-yukiono/n8n-i18n-japanese/pull/22)）。さらに翻訳処理を再設計し
+  （[#25](https://github.com/jqit-yukiono/n8n-i18n-japanese/pull/25)）、ソート・全文書き換えなどの
   決定論的処理は **jq** が担当、Claude は**差分キーの翻訳のみ**を行う構成にした。
   - 旧英語ロケールと新英語ロケールを jq で比較し、追加・変更キーだけを抽出
   - Claude がその差分のみを翻訳（巨大ファイル全体を扱わないため高速・低コスト・安定）
@@ -40,16 +40,17 @@
 
 ## 2. CI/CD の完全自動化
 
-フォーク元の単一ワークフロー（`editor-ui` のパッケージ化）を廃し、4 つのワークフローに再編した。
+フォーク元の単一ワークフロー（`editor-ui` のパッケージ化）を廃し、5 つのワークフローに再編した。
 
 | ワークフロー | 役割 |
 |-------------|------|
 | [`n8n-monitor-pr.yml`](../.github/workflows/n8n-monitor-pr.yml) | n8n 新版を毎時検知 → 差分翻訳 → editor-ui パッチ適用/自動修復 → ビルド → PR 作成 → 自動マージ |
-| [`release-ja.yml`](../.github/workflows/release-ja.yml) | main 反映後に GitHub Release / Docker Hub イメージ / git tag を発行 |
 | [`pr-validate.yml`](../.github/workflows/pr-validate.yml) | PR の検証（フォーマット / lint / スモーク） |
+| [`copilot-review-handler.yml`](../.github/workflows/copilot-review-handler.yml) | Jenkins 経由の Copilot レビュー結果（VERDICT）を起点にマージ / 自動修正ループ |
+| [`release-ja.yml`](../.github/workflows/release-ja.yml) | main 反映後に GitHub Release / Docker Hub イメージ / git tag を発行 |
 | [`auto-heal.yml`](../.github/workflows/auto-heal.yml) | 上記が失敗したとき Claude が失敗ログを診断し、修正PR（要レビュー）または issue を自動作成 |
 
-主な堅牢化（[#29](https://github.com/YukiOno-1015/n8n-i18n-japanese/pull/29)）:
+主な堅牢化（[#29](https://github.com/jqit-yukiono/n8n-i18n-japanese/pull/29)）:
 
 - 自動 PR を `RELEASE_PAT` で作成し、マージ後のリリースを自動連鎖
 - リリースは locale/version 関連の変更時のみ発火（path フィルタ）＋重複ガード
