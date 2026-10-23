@@ -39,7 +39,7 @@ Copilot がこのリポジトリの PR をレビューする際は、以下を�
 ```text
 ## GitHub Copilot CLI レビュー (n8n-i18n-japanese 翻訳観点)
 
-**リポジトリ**: `YukiOno-1015/n8n-i18n-japanese`
+**リポジトリ**: `jqit-yukiono/n8n-i18n-japanese`
 **PR**: [#<番号> — <タイトル>](<URL>)
 **ブランチ**: `<branch>` / SHA: `<sha>`
 

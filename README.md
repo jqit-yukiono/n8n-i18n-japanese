@@ -4,7 +4,7 @@
 
 **多くのユーザーにとって最も簡単な方法は、GitHub Releases からビルド済みの日本語化パッケージをダウンロードすることです。**
 
-[**最新の日本語化パッケージはこちらからダウンロード (GitHub Releases)**](https://github.com/YukiOno-1015/n8n-i18n-japanese/releases)
+[**最新の日本語化パッケージはこちらからダウンロード (GitHub Releases)**](https://github.com/jqit-yukiono/n8n-i18n-japanese/releases)
 
 このリリースには、特定の n8n バージョンに対応した翻訳済み `editor-ui` が `editor-ui.tar.gz` として含まれています。
 これを利用することで、煩雑なビルド作業なしに n8n を日本語で利用開始できます。
@@ -16,7 +16,7 @@
 
 ## 主な機能
 
-- **翻訳済み `editor-ui` の配布 (推奨)**: 最新の n8n リリースに対応した、日本語化済みの `editor-ui` ビルド成果物を [GitHub Releases](https://github.com/YukiOno-1015/n8n-i18n-japanese/releases) で公開しています。
+- **翻訳済み `editor-ui` の配布 (推奨)**: 最新の n8n リリースに対応した、日本語化済みの `editor-ui` ビルド成果物を [GitHub Releases](https://github.com/jqit-yukiono/n8n-i18n-japanese/releases) で公開しています。
 - **日本語翻訳ファイルの提供**: n8n の UI テキストに対応する日本語の翻訳ファイル ([`languages/ja.json`](languages/ja.json:0)) を提供します。これは主に開発者や、自身でビルドを行いたい方向けです。
 - **Docker イメージでの簡易利用**: `docker-compose` を使用して、日本語化された n8n 環境を簡単に起動できます。
 
@@ -25,7 +25,7 @@
 ### 1. GitHub Releases からパッケージを取得して利用する (推奨)
 
 1. **パッケージのダウンロード**:
-    [GitHub Releases ページ](https://github.com/YukiOno-1015/n8n-i18n-japanese/releases) から、利用したい n8n のバージョンに対応する `editor-ui.tar.gz` をダウンロードします。
+    [GitHub Releases ページ](https://github.com/jqit-yukiono/n8n-i18n-japanese/releases) から、利用したい n8n のバージョンに対応する `editor-ui.tar.gz` をダウンロードします。
 2. **パッケージの展開**:
     ダウンロードした `editor-ui.tar.gz` を展開し、`editor-ui-dist` ディレクトリを取得します。
 3. **Docker で n8n を起動**:
@@ -34,7 +34,7 @@
       1. このリポジトリをクローンまたはダウンロードします。
 
           ```shell
-          git clone https://github.com/YukiOno-1015/n8n-i18n-japanese.git # またはあなたのフォーク
+          git clone https://github.com/jqit-yukiono/n8n-i18n-japanese.git # またはあなたのフォーク
           cd n8n-i18n-japanese
           ```
 
@@ -62,7 +62,9 @@
 
       【n8nのバージョン】には、ダウンロードしたパッケージが対応するバージョンを指定してください。
 
-### 2. 手動で翻訳とビルドを行う場合 (開発者向け)
+### 2. 手動で翻訳とビルドを行う場合 (開発者向け・補助手段)
+
+> **注意**: 本番の翻訳フローは GitHub Actions 上の Claude Code による差分翻訳（[フォーク元との違い](docs/fork-differences.md) 参照）です。以下は `script/translate.js`（Gemini / OpenAI API 利用）によるローカル検証用の補助手段で、本番フローとは別経路です。
 
 最新の翻訳を自分で生成したり、開発目的で利用したりする場合は、以下の手順で手動実行できます。
 
@@ -161,7 +163,9 @@ docker compose run --rm translator
 
 補足: `docker compose` はプロジェクトルートの `.env` を読み込みます。`.env` の値は基本的に1行で記述し、複数行テキスト（改行を含む `TRANSLATION_PROMPT` など）はそのまま書かないようにしてください。
 
-## 翻訳の仕組み
+## 翻訳の仕組み (ローカル手動フロー)
+
+上記 2./3. の手動フローの仕組みです。GitHub Actions 上の本番フローは [フォーク元との違い](docs/fork-differences.md) を参照してください（決定論的な差分抽出は共通ですが、翻訳自体は Claude Code が行います）。
 
 1. **英語ロケールファイルの取得**: n8n の公式リポジトリから最新の英語ロケールファイル (`en.json`) を取得します。
 2. **差分翻訳**: ローカルに保存されている前回の英語ロケールファイル ([`script/en.json`](script/en.json:0)) と比較し、新規追加または変更されたテキストのみを抽出します。
@@ -171,11 +175,11 @@ docker compose run --rm translator
 
 ## GitHub Actions による自動化
 
-このリポジトリでは、3段構成の GitHub Actions で、監視からリリースまでを自動化しています。
+このリポジトリでは、5 つの GitHub Actions ワークフローで、監視からリリース、レビュー駆動の自動修正までを自動化しています。詳細は [.github/Skills.md](.github/Skills.md) を参照してください。
 
 - **監視と更新PR作成**: [.github/workflows/n8n-monitor-pr.yml](.github/workflows/n8n-monitor-pr.yml)
-  - n8n 最新リリースを定期監視
-  - 新バージョン検知時に `editor-ui-dist` を再生成
+  - n8n 最新リリースを毎時監視
+  - 新バージョン検知時に Claude Code で差分翻訳 → `editor-ui-dist` を再生成
   - `docker-compose.yml` の n8n バージョン更新
   - 自動で更新PRを作成し、オートマージを有効化
 
@@ -184,31 +188,45 @@ docker compose run --rm translator
   - 翻訳スクリプト構文チェック
   - `docker compose` で n8n を起動してスモークテスト
 
+- **Copilot レビュー駆動のマージ/自動修正**: [.github/workflows/copilot-review-handler.yml](.github/workflows/copilot-review-handler.yml)
+  - Jenkins 経由で投稿される GitHub Copilot レビュー結果 (VERDICT) を起点に動作
+  - `VERDICT: APPROVE` → squash マージ
+  - `VERDICT: REQUEST_CHANGES` → Claude Code が指摘事項を機械修正してプッシュ（上限到達で `needs-human-review` ラベル）
+
 - **mainマージ後リリース**: [.github/workflows/release-ja.yml](.github/workflows/release-ja.yml)
   - n8n-ja Dockerイメージをビルドして Docker Hub へ push
-  - タグを自動採番して作成 (例: `2.17.2-ja.1`)
+  - タグを自動採番して作成 (例: `2.43.7-ja.1`)
   - GitHub Release を作成し、`languages/ja.json` と `editor-ui.tar.gz` を添付
 
-### 必要な Secrets
+- **失敗時の自動診断・修復**: [.github/workflows/auto-heal.yml](.github/workflows/auto-heal.yml)
+  - 上記ワークフローが失敗したとき Claude Code が失敗ログを診断
+  - 機械的に修正可能なら修正PRを作成（ラベル `auto-heal`、マージは人手）
+  - 外部要因（上流障害・レート制限等）なら issue を作成
 
-- `DOCKERHUB_USERNAME`
-- `DOCKERHUB_TOKEN`
+### 必要な Secrets / Variables
 
-### Secrets の設定方法
+| 種別 | 名前 | 用途 |
+|------|------|------|
+| Secret | `RELEASE_PAT` | 自動PRの作成・push、`claude-code-action` の GitHub 操作（repo write 権限が必要） |
+| Secret | `CLAUDE_CODE_OAUTH_TOKEN` | `claude-code-action`（差分翻訳・自動修正・auto-heal診断）の認証 |
+| Secret | `DOCKERHUB_USERNAME` | Docker Hub へのログイン（n8n-ja イメージ push） |
+| Secret | `DOCKERHUB_TOKEN` | 同上（**Read & Write** 権限の Personal Access Token が必要） |
+| Secret | `SLACK_WEBHOOK_URL` | 失敗時・自動修正ループ上限到達時の Slack 通知（任意） |
+| Variable | `JENKINS_BOT_USERNAME` | Jenkins が投稿する Copilot レビューコメントの投稿者ログイン（eligibility gate 判定に使用） |
+
+### Secrets の設定方法 (Docker Hub の例)
 
 1. Docker Hub でアクセストークンを作成
 
 - Docker Hub にログイン
 - **Account Settings** → **Personal access tokens** → **Generate new token**
-- トークン名を入力して作成し、表示されたトークン文字列を控える
+- Permissions を **Read, Write** にして作成し、表示されたトークン文字列を控える（発行後は権限変更できないため、Read-only で作ってしまった場合は再発行する）
 
 1. GitHub リポジトリに Secrets を登録
 
 - 対象リポジトリを開く
 - **Settings** → **Secrets and variables** → **Actions**
-- **New repository secret** から以下を追加
-  - `DOCKERHUB_USERNAME`: Docker Hub のユーザー名
-  - `DOCKERHUB_TOKEN`: 上記で作成した Docker Hub Personal Access Token
+- **New repository secret** から上記の表の Secret を登録する
 
 1. 動作確認
 
@@ -225,6 +243,7 @@ docker compose run --rm translator
 
 - n8n-ja イメージは [Dockerfile.n8n-ja](Dockerfile.n8n-ja) を使って作成します。
 - タグ採番は、同一 n8n バージョンに対して `-ja.N` をインクリメントします。
+- ワークフロー構成・Copilot レビューの contract・ブランチ命名規約の詳細は [.github/Skills.md](.github/Skills.md) を参照してください。
 
 ## コントリビューション
 
