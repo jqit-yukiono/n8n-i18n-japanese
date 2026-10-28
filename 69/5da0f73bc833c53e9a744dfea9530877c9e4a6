@@ -1,0 +1,20 @@
+Dockerfile.n8n-ja
+  s_b963421d6961a5::t_97c3a5b94bc6e7 4-18,38-50
+  s_b963421d6961a5::t_c8cc9143087440 51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "695da0f73bc833c53e9a744dfea9530877c9e4a6",
+  "prompts": {},
+  "sessions": {
+    "s_b963421d6961a5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8dca65c0-af28-44ca-9039-a17718ff4d95",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jqit-yukiono <jqit.yuki.ono@gmail.com>"
+    }
+  }
+}
