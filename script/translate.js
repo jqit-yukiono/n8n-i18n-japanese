@@ -12,22 +12,24 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 const API_MAX_RETRIES_429 = Number(process.env.API_MAX_RETRIES_429 || process.env.GEMINI_MAX_RETRIES_429 || '6');
 const API_MIN_RETRY_MS = Number(process.env.API_MIN_RETRY_MS || process.env.GEMINI_MIN_RETRY_MS || '8000');
 
-if (AI_PROVIDER === 'openai' && !OPENAI_API_KEY) {
-    console.error('環境変数 OPENAI_API_KEY を設定してください。');
-    process.exit(1);
+// プロセス終了を伴うため、実際に CLI として起動されたときだけ呼び出す（require.main 配下）。
+function validateProviderConfig() {
+    if (AI_PROVIDER === 'openai' && !OPENAI_API_KEY) {
+        console.error('環境変数 OPENAI_API_KEY を設定してください。');
+        process.exit(1);
+    }
+
+    if (AI_PROVIDER === 'gemini' && !GEMINI_API_KEY) {
+        console.error('環境変数 GEMINI_API_KEY を設定してください。');
+        process.exit(1);
+    }
+
+    if (!['openai', 'gemini'].includes(AI_PROVIDER)) {
+        console.error(`未対応のAIプロバイダです: ${AI_PROVIDER} (openai または gemini を指定してください)`);
+        process.exit(1);
+    }
 }
 
-if (AI_PROVIDER === 'gemini' && !GEMINI_API_KEY) {
-    console.error('環境変数 GEMINI_API_KEY を設定してください。');
-    process.exit(1);
-}
-
-if (!['openai', 'gemini'].includes(AI_PROVIDER)) {
-    console.error(`未対応のAIプロバイダです: ${AI_PROVIDER} (openai または gemini を指定してください)`);
-    process.exit(1);
-}
-
-let targetLanguages;
 const defaultTargetLanguages = [
     {
         "name": "ja", // Or "ja-JP" if you prefer
@@ -35,23 +37,24 @@ const defaultTargetLanguages = [
     }
 ];
 
-if (process.env.TARGET_LANGUAGES) {
+function resolveTargetLanguages() {
+    if (!process.env.TARGET_LANGUAGES) {
+        console.log("環境変数 TARGET_LANGUAGES が未設定です。デフォルトの翻訳対象言語（日本語）を使用します。");
+        return defaultTargetLanguages;
+    }
+
     try {
         const parsedLanguages = JSON.parse(process.env.TARGET_LANGUAGES);
         if (Array.isArray(parsedLanguages) && parsedLanguages.every(lang => lang && typeof lang.name === 'string' && typeof lang.label === 'string')) {
-            targetLanguages = parsedLanguages;
-            console.log("環境変数 TARGET_LANGUAGES から翻訳対象言語を読み込みました:", targetLanguages.map(l => l.label).join(', '));
-        } else {
-            console.warn("環境変数 TARGET_LANGUAGES の形式が正しくありません。デフォルトの翻訳対象言語（日本語）を使用します。");
-            targetLanguages = defaultTargetLanguages;
+            console.log("環境変数 TARGET_LANGUAGES から翻訳対象言語を読み込みました:", parsedLanguages.map(l => l.label).join(', '));
+            return parsedLanguages;
         }
+        console.warn("環境変数 TARGET_LANGUAGES の形式が正しくありません。デフォルトの翻訳対象言語（日本語）を使用します。");
+        return defaultTargetLanguages;
     } catch (e) {
         console.error("環境変数 TARGET_LANGUAGES のJSONパースに失敗しました。デフォルトの翻訳対象言語（日本語）を使用します。", e);
-        targetLanguages = defaultTargetLanguages;
+        return defaultTargetLanguages;
     }
-} else {
-    targetLanguages = defaultTargetLanguages;
-    console.log("環境変数 TARGET_LANGUAGES が未設定です。デフォルトの翻訳対象言語（日本語）を使用します。");
 }
 
 // 翻訳結果を分割するための区切り文字（API呼び出しごとにユニークにする）
@@ -590,6 +593,7 @@ async function run(){
 
     const localEnFilePath = path.join(__dirname, "en.json"); // スクリプトと同じディレクトリの en.json
     const oldEnLanguages = loadOldEnLanguages(localEnFilePath);
+    const targetLanguages = resolveTargetLanguages();
 
     const localeSourceUrls = [
         'https://raw.githubusercontent.com/n8n-io/n8n/master/packages/frontend/@n8n/i18n/src/locales/en.json',
@@ -613,7 +617,29 @@ async function run(){
     console.log(`${localEnFilePath} を最新版に更新しました。`);
 }
 
-run().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-});
+module.exports = {
+    validateProviderConfig,
+    generateUniqueSeparator,
+    parseApiErrorText,
+    extractRetryDelayMs,
+    buildOpenAIRequestBody,
+    buildGeminiRequestBody,
+    buildGeminiModelCandidates,
+    extractCombinedTranslations,
+    doTranslate,
+    putObjectValue,
+    collectMessages,
+    loadOldEnLanguages,
+    loadExistingTargetJson,
+    sortTargetJsonByKeyOrder,
+    processTargetLanguage,
+    resolveTargetLanguages,
+};
+
+if (require.main === module) {
+    validateProviderConfig();
+    run().catch((error) => {
+        console.error(error);
+        process.exitCode = 1;
+    });
+}

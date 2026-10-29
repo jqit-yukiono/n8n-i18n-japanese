@@ -260,7 +260,20 @@ async function main() {
 	}
 }
 
-main().catch((error) => {
-	console.error(error);
-	process.exitCode = 1;
-});
+module.exports = {
+	sleep,
+	protectText,
+	restoreText,
+	normalizeJapaneseText,
+	isLikelyNonTranslatable,
+	shouldTranslate,
+	collectTasks,
+	setByPath,
+};
+
+if (require.main === module) {
+	main().catch((error) => {
+		console.error(error);
+		process.exitCode = 1;
+	});
+}

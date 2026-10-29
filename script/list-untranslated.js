@@ -2,14 +2,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const enPath = path.join(__dirname, 'en.json');
-const jaPath = path.join(__dirname, '..', 'languages', 'ja.json');
-
-const enRaw = fs.readFileSync(enPath, 'utf8');
-const jaRaw = fs.readFileSync(jaPath, 'utf8');
-const enData = JSON.parse(enRaw);
-const jaData = JSON.parse(jaRaw);
-
 function walk(enObj, jaObj, prefix) {
     const hits = [];
     for (const key in enObj) {
@@ -25,8 +17,22 @@ function walk(enObj, jaObj, prefix) {
     return hits;
 }
 
-const untranslated = walk(enData, jaData, '');
-console.log('untranslated count: ' + untranslated.length);
-for (const key of untranslated) {
-    console.log('- ' + key);
+function run() {
+    const enPath = path.join(__dirname, 'en.json');
+    const jaPath = path.join(__dirname, '..', 'languages', 'ja.json');
+
+    const enData = JSON.parse(fs.readFileSync(enPath, 'utf8'));
+    const jaData = JSON.parse(fs.readFileSync(jaPath, 'utf8'));
+
+    const untranslated = walk(enData, jaData, '');
+    console.log('untranslated count: ' + untranslated.length);
+    for (const key of untranslated) {
+        console.log('- ' + key);
+    }
+}
+
+module.exports = { walk, run };
+
+if (require.main === module) {
+    run();
 }

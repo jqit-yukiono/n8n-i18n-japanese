@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "i18n:translate": "node ./script/translate.js",
-    "i18n:translate:google": "node ./script/translate-google.js"
+    "i18n:translate:google": "node ./script/translate-google.js",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "repository": {
     "type": "git",
@@ -14,6 +16,7 @@
   "private": true,
   "devDependencies": {
     "dotenv": "^17.4.2",
-    "google-translate-api-x": "^10.7.2"
+    "google-translate-api-x": "^10.7.2",
+    "jest": "30.5.2"
   }
 }

@@ -29,3 +29,6 @@ n8n/
 
 # SonarQube scanner working directory
 .scannerwork/
+
+# Jest coverage output
+coverage/
