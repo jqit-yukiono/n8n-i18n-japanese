@@ -189,6 +189,9 @@ jobs:
                   set -euo pipefail
                   workdir="$RUNNER_TEMP/n8n-ja-tool-test"
                   mkdir -p "$workdir"
+                  # イメージ内は USER node(非root)で動くため、ランナーの
+                  # ユーザーが作ったディレクトリのままだと書き込めない。
+                  chmod -R a+rwx "$workdir"
                   echo hello > "$workdir/a.txt"
                   printf 'a: 1\nb: 2\n' > "$workdir/in.yaml"
                   docker run --rm -v "$workdir:/work" -w /work --entrypoint zip n8n-ja-smoke:test t.zip a.txt
