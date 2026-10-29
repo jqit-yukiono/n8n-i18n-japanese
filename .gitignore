@@ -26,3 +26,6 @@ n8n/
 
 # Tooling caches (Serena MCP)
 .serena/
+
+# SonarQube scanner working directory
+.scannerwork/

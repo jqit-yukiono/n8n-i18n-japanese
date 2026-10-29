@@ -1,6 +1,6 @@
 // List keys whose ja value still equals the en value (likely untranslated).
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const enPath = path.join(__dirname, 'en.json');
 const jaPath = path.join(__dirname, '..', 'languages', 'ja.json');
@@ -18,10 +18,8 @@ function walk(enObj, jaObj, prefix) {
         const fullKey = prefix ? `${prefix}.${key}` : key;
         if (typeof enVal === 'object' && enVal !== null) {
             hits.push(...walk(enVal, jaVal, fullKey));
-        } else {
-            if (typeof jaVal === 'string' && enVal === jaVal) {
-                hits.push(fullKey);
-            }
+        } else if (typeof jaVal === 'string' && enVal === jaVal) {
+            hits.push(fullKey);
         }
     }
     return hits;
@@ -29,6 +27,6 @@ function walk(enObj, jaObj, prefix) {
 
 const untranslated = walk(enData, jaData, '');
 console.log('untranslated count: ' + untranslated.length);
-for (let i = 0; i < untranslated.length; i++) {
-    console.log('- ' + untranslated[i]);
+for (const key of untranslated) {
+    console.log('- ' + key);
 }
