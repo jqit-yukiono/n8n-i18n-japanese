@@ -262,10 +262,13 @@ async function main() {
 
 module.exports = {
 	sleep,
+	loadJson,
+	saveJson,
 	protectText,
 	restoreText,
 	normalizeJapaneseText,
 	isLikelyNonTranslatable,
+	translateWithRetry,
 	shouldTranslate,
 	collectTasks,
 	setByPath,
