@@ -1,4 +1,13 @@
+const os = require('node:os');
+const fs = require('node:fs');
+const path = require('node:path');
+
+jest.mock('google-translate-api-x', () => ({ translate: jest.fn() }));
+
 const {
+	sleep,
+	loadJson,
+	saveJson,
 	protectText,
 	restoreText,
 	normalizeJapaneseText,
@@ -154,5 +163,85 @@ describe('setByPath', () => {
 		const target = { greeting: 'old' };
 		setByPath(target, ['greeting'], 'new');
 		expect(target.greeting).toBe('new');
+	});
+});
+
+describe('sleep', () => {
+	it('resolves after the given delay', async () => {
+		await expect(sleep(1)).resolves.toBeUndefined();
+	});
+});
+
+describe('loadJson / saveJson', () => {
+	let tmpFile;
+
+	afterEach(() => {
+		if (tmpFile && fs.existsSync(tmpFile)) {
+			fs.rmSync(tmpFile);
+		}
+	});
+
+	it('round-trips a JSON value through saveJson/loadJson', () => {
+		tmpFile = path.join(os.tmpdir(), `translate-google-test-${Date.now()}.json`);
+		saveJson(tmpFile, { greeting: 'こんにちは' });
+		expect(loadJson(tmpFile)).toEqual({ greeting: 'こんにちは' });
+	});
+});
+
+describe('translateWithRetry (google-translate-api-x をモック)', () => {
+	const ORIGINAL_ENV = { ...process.env };
+
+	afterEach(() => {
+		process.env = { ...ORIGINAL_ENV };
+		jest.resetModules();
+	});
+
+	function loadWithFastRetry() {
+		jest.resetModules();
+		process.env.GOOGLE_TRANSLATE_RETRY_DELAY_MS = '1';
+		process.env.GOOGLE_TRANSLATE_MAX_RETRIES = '2';
+		const mod = require('./translate-google');
+		const { translate: mockTranslate } = require('google-translate-api-x');
+		mockTranslate.mockReset();
+		return { mod, mockTranslate };
+	}
+
+	it('returns the translated text on first success', async () => {
+		const { mod, mockTranslate } = loadWithFastRetry();
+		mockTranslate.mockResolvedValue({ text: 'こんにちは' });
+		const result = await mod.translateWithRetry('Hello world');
+		expect(result).toBe('こんにちは');
+		expect(mockTranslate).toHaveBeenCalledTimes(1);
+	});
+
+	it('retries after a transient failure and eventually succeeds', async () => {
+		const { mod, mockTranslate } = loadWithFastRetry();
+		mockTranslate
+			.mockRejectedValueOnce(new Error('network blip'))
+			.mockResolvedValueOnce({ text: 'こんにちは' });
+		const result = await mod.translateWithRetry('Hello world');
+		expect(result).toBe('こんにちは');
+		expect(mockTranslate).toHaveBeenCalledTimes(2);
+	});
+
+	it('throws the last error once retries are exhausted', async () => {
+		const { mod, mockTranslate } = loadWithFastRetry();
+		mockTranslate.mockRejectedValue(new Error('persistent failure'));
+		await expect(mod.translateWithRetry('Hello world')).rejects.toThrow('persistent failure');
+		expect(mockTranslate).toHaveBeenCalledTimes(3); // 初回 + MAX_RETRIES(2)
+	});
+
+	it('skips the API call entirely for non-translatable text', async () => {
+		const { mod, mockTranslate } = loadWithFastRetry();
+		const result = await mod.translateWithRetry('https://example.com');
+		expect(result).toBe('https://example.com');
+		expect(mockTranslate).not.toHaveBeenCalled();
+	});
+
+	it('falls back to the original text when the API returns no text', async () => {
+		const { mod, mockTranslate } = loadWithFastRetry();
+		mockTranslate.mockResolvedValue({ text: undefined });
+		const result = await mod.translateWithRetry('Hello world');
+		expect(result).toBe('Hello world');
 	});
 });
