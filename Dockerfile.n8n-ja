@@ -5,9 +5,9 @@ ARG EDITOR_UI_ARCHIVE_URL
 # python3/jq 本体・依存共有ライブラリは別ステージの素の Alpine で取得してコピーする。
 # n8nio/n8n 側の Alpine バージョンが変わったら揃える（現状 3.24 系）。
 FROM alpine:3.24 AS python_base
-# Alpine リポジトリの最新 python3/jq に追随したいのでバージョン固定はしない。
+# Alpine リポジトリの最新 python3/jq/curl/yq/zip/unzip に追随したいのでバージョン固定はしない。
 # hadolint ignore=DL3018
-RUN apk add --no-cache python3 jq
+RUN apk add --no-cache python3 jq curl yq zip unzip
 # stdlib ディレクトリ (/usr/lib/python3.X) をワイルドカード COPY すると
 # ディレクトリ名が落ちて内容が /usr/lib/ 直下に展開されてしまうため、
 # /out 配下に絶対パスのまま複製し直して最終ステージへそのまま重ねる。
@@ -54,6 +54,14 @@ USER node
 # python3 と同じ理由で apk が無いため、python_base ステージからコピーする。
 COPY --from=python_base /usr/bin/jq /usr/bin/
 COPY --from=python_base /usr/lib/libjq.so* /usr/lib/libonig.so* /usr/lib/
+
+# --- curl / yq / zip / unzip (最新) ---
+# n8n ワークフロー（Execute Command ノード等）から HTTP 取得・YAML 加工・zip 圧縮/展開を
+# 行えるよう同梱する。python3/jq と同じ理由で apk が無いため python_base ステージから
+# バイナリのみコピーする。curl の依存共有ライブラリ（libcurl/libssl/libcares 等）は
+# n8n ベースにすでに同梱済みのため対象外。yq（Go バイナリ）・zip・unzip は musl libc
+# 以外に依存ライブラリが無い。unzip は busybox 版（機能が限定的）を Alpine 版で上書きする。
+COPY --from=python_base /usr/bin/curl /usr/bin/yq /usr/bin/zip /usr/bin/unzip /usr/bin/
 
 # --- Claude Code CLI ---
 # n8n ワークフロー（Execute Command ノード等）から `claude` を呼べるよう同梱する。
