@@ -299,6 +299,8 @@ jobs:
           echo "HEAD が reviewed_sha と一致（${CURRENT_HEAD}）。自動修正を続行する。"
 
       - name: SonarQube の新規コード指摘を取得（任意・失敗しても続行）
+        # sonar FAIL を含まないレビューでは不要な外部通信なので、該当時だけ実行する。
+        if: "${{ contains(github.event.comment.body, 'sonar (n8n-i18n-japanese): FAIL') }}"
         env:
           SONARQUBE_TOKEN: ${{ secrets.SONARQUBE_TOKEN }}
         run: |
@@ -311,13 +313,29 @@ jobs:
           # REVIEW_COMMENT は外部入力のdiffを反映しうるため、LLMにcurl等の
           # 任意アクセス手段を与えると prompt injection 経由の情報持ち出し
           # リスクが生まれる)。
+          #
+          # この project/jenkins-cli 側の sonar-scanner 呼び出しは
+          # sonar.branch.name / sonar.pullrequest.key を設定しておらず、
+          # 単一ブランチ("main"扱い)としてPR毎に解析結果を上書きしている
+          # (branches API で確認済み、2026-10-29)。そのため pullRequest/branch
+          # パラメータは指定しない(指定しても対応する分析が存在せずエラーになる)。
+          #
+          # SONARQUBE_TOKEN を `-u` の引数に直接埋め込むと ps(1) 経由で
+          # 他プロセスに見える可能性があるため、.netrc 経由で渡す。
+          NETRC="${RUNNER_TEMP}/.netrc-sonar"
           OUT="${RUNNER_TEMP}/sonar-new-issues.json"
           if [ -z "${SONARQUBE_TOKEN:-}" ]; then
             echo '{"note": "SONARQUBE_TOKEN is not configured yet"}' > "$OUT"
-          elif ! curl -fsS -g -u "${SONARQUBE_TOKEN}:" \
-              "https://sonarqube-cli.sk4869.info/api/issues/search?componentKeys=n8n-i18n-japanese&inNewCodePeriod=true&resolved=false&ps=100" \
-              -o "$OUT"; then
-            echo '{"note": "failed to fetch issues from SonarQube"}' > "$OUT"
+          else
+            printf 'machine sonarqube-cli.sk4869.info\n  login %s\n  password\n' "$SONARQUBE_TOKEN" > "$NETRC"
+            chmod 600 "$NETRC"
+            if ! curl --netrc-file "$NETRC" -fsS -g \
+                --connect-timeout 10 --max-time 30 \
+                "https://sonarqube-cli.sk4869.info/api/issues/search?componentKeys=n8n-i18n-japanese&inNewCodePeriod=true&resolved=false&ps=500" \
+                -o "$OUT"; then
+              echo '{"note": "failed to fetch issues from SonarQube"}' > "$OUT"
+            fi
+            rm -f "$NETRC"
           fi
           echo "sonar_issues_path=${OUT}" >> "$GITHUB_ENV"
 
