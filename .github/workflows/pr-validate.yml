@@ -149,9 +149,12 @@ jobs:
                   echo "Dummy archive server did not come up in time" >&2
                   exit 1
 
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v3
-
+            # docker/setup-buildx-action は buildkit を別コンテナで起動する
+            # docker-container ドライバに切り替わり、--network=host が
+            # ランナー自身のループバックではなくそのコンテナのものを指して
+            # しまい、127.0.0.1:8080 のダミーアーカイブに到達できない。
+            # ランナー標準の docker ドライバ(dockerdと同一ネットワーク)の
+            # ままにするため、このステップは追加しない。
             - name: Build n8n-ja image
               run: |
                   set -euo pipefail
