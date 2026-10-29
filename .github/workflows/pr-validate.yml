@@ -118,3 +118,77 @@ jobs:
             - name: Shutdown containers
               if: always()
               run: docker compose down -v
+
+    n8n-ja-smoke-test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v5
+
+            - name: Resolve n8n version
+              id: n8n_version
+              run: echo "value=$(cat .n8n-upstream-version)" >> "$GITHUB_OUTPUT"
+
+            - name: Create dummy editor-ui archive
+              run: |
+                  set -euo pipefail
+                  mkdir -p editor-ui-dist
+                  touch editor-ui-dist/placeholder.txt
+                  tar -czf editor-ui.tar.gz editor-ui-dist
+
+            - name: Serve dummy editor-ui archive locally
+              run: |
+                  set -euo pipefail
+                  python3 -m http.server 8080 --directory . &
+                  for _ in $(seq 1 10); do
+                    if curl -fsS -o /dev/null http://127.0.0.1:8080/editor-ui.tar.gz; then
+                      exit 0
+                    fi
+                    sleep 1
+                  done
+                  echo "Dummy archive server did not come up in time" >&2
+                  exit 1
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Build n8n-ja image
+              run: |
+                  set -euo pipefail
+                  docker buildx build \
+                    --network=host \
+                    --load \
+                    -f Dockerfile.n8n-ja \
+                    -t n8n-ja-smoke:test \
+                    --build-arg N8N_VERSION=${{ steps.n8n_version.outputs.value }} \
+                    --build-arg EDITOR_UI_ARCHIVE_URL=http://127.0.0.1:8080/editor-ui.tar.gz \
+                    .
+
+            # 同梱ツール群(python3/jq/curl/yq/zip/unzip)が最終イメージで実際に
+            # 動くかはビルドが通るだけでは分からない(共有ライブラリ不足は実行時
+            # エラーになる)ため、起動確認と実処理(HTTPS取得・zip往復・yaml変換)
+            # まで実行して検証する。
+            - name: Verify bundled CLI tools start
+              run: |
+                  set -euo pipefail
+                  docker run --rm --entrypoint python3 n8n-ja-smoke:test --version
+                  docker run --rm --entrypoint jq n8n-ja-smoke:test --version
+                  docker run --rm --entrypoint curl n8n-ja-smoke:test --version
+                  docker run --rm --entrypoint yq n8n-ja-smoke:test --version
+                  docker run --rm --entrypoint zip n8n-ja-smoke:test -v
+                  docker run --rm --entrypoint unzip n8n-ja-smoke:test -v
+
+            - name: Verify curl HTTPS connectivity
+              run: docker run --rm --entrypoint curl n8n-ja-smoke:test -fsSL -o /dev/null -w 'HTTP %{http_code}\n' https://example.com
+
+            - name: Verify zip/unzip/yq round-trip
+              run: |
+                  set -euo pipefail
+                  workdir="$RUNNER_TEMP/n8n-ja-tool-test"
+                  mkdir -p "$workdir"
+                  echo hello > "$workdir/a.txt"
+                  printf 'a: 1\nb: 2\n' > "$workdir/in.yaml"
+                  docker run --rm -v "$workdir:/work" -w /work --entrypoint zip n8n-ja-smoke:test t.zip a.txt
+                  docker run --rm -v "$workdir:/work" -w /work --entrypoint unzip n8n-ja-smoke:test -o t.zip -d extracted
+                  grep -qx hello "$workdir/extracted/a.txt"
+                  docker run --rm -v "$workdir:/work" -w /work --entrypoint yq n8n-ja-smoke:test -o=json in.yaml
