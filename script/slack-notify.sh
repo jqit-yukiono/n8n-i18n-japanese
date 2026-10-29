@@ -56,3 +56,5 @@ if ! curl -fsS -X POST -H 'Content-Type: application/json' \
 fi
 
 echo "slack-notify: posted"
+
+# SonarQube check (throwaway)
