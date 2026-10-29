@@ -2,12 +2,12 @@ ARG N8N_VERSION=latest
 ARG EDITOR_UI_ARCHIVE_URL
 
 # n8nio/n8n は Docker Hardened Image (Alpine) で apk を持たないため、
-# python3 本体・依存共有ライブラリは別ステージの素の Alpine で取得してコピーする。
+# python3/jq 本体・依存共有ライブラリは別ステージの素の Alpine で取得してコピーする。
 # n8nio/n8n 側の Alpine バージョンが変わったら揃える（現状 3.24 系）。
 FROM alpine:3.24 AS python_base
-# Alpine リポジトリの最新 python3 に追随したいのでバージョン固定はしない。
+# Alpine リポジトリの最新 python3/jq に追随したいのでバージョン固定はしない。
 # hadolint ignore=DL3018
-RUN apk add --no-cache python3
+RUN apk add --no-cache python3 jq
 # stdlib ディレクトリ (/usr/lib/python3.X) をワイルドカード COPY すると
 # ディレクトリ名が落ちて内容が /usr/lib/ 直下に展開されてしまうため、
 # /out 配下に絶対パスのまま複製し直して最終ステージへそのまま重ねる。
@@ -48,6 +48,12 @@ RUN py_bin="$(ls /usr/bin/python3.* | head -n1)" \
 	&& ln -sf "$py_bin" /usr/bin/python3 \
 	&& ln -sf "$py_bin" /usr/bin/python
 USER node
+
+# --- jq (最新) ---
+# n8n ワークフロー（Execute Command ノード等）から `jq` で JSON 加工できるよう同梱する。
+# python3 と同じ理由で apk が無いため、python_base ステージからコピーする。
+COPY --from=python_base /usr/bin/jq /usr/bin/
+COPY --from=python_base /usr/lib/libjq.so* /usr/lib/libonig.so* /usr/lib/
 
 # --- Claude Code CLI ---
 # n8n ワークフロー（Execute Command ノード等）から `claude` を呼べるよう同梱する。
