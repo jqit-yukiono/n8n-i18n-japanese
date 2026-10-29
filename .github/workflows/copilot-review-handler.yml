@@ -53,6 +53,7 @@ jobs:
       labels: ${{ steps.gate.outputs.labels }}
       sha_match: ${{ steps.gate.outputs.sha_match }}
       reviewed_sha: ${{ steps.gate.outputs.reviewed_sha }}
+      codex_hold: ${{ steps.hold.outputs.hold }}
     steps:
       - name: コメントから VERDICT を抽出（厳格マッチ）
         id: parse
@@ -67,6 +68,23 @@ jobs:
             | awk '{print $2}')
           echo "verdict=${VERDICT:-UNKNOWN}" >> "$GITHUB_OUTPUT"
           echo "VERDICT: ${VERDICT:-UNKNOWN}"
+
+      - name: コメントから codex-hold マーカーを検出（行頭完全一致）
+        id: hold
+        env:
+          BODY: ${{ github.event.comment.body }}
+        run: |
+          set -euo pipefail
+          # Codex だけが REQUEST_CHANGES のとき、Jenkins が最終判定を変えずに
+          # "<!-- codex-hold: true -->" を入れる。あれば自動マージだけ止めて
+          # 人に回す。マーカーは「止める」方向にしか働かないので、PR タイトル
+          # 等から偽装されても自動マージが止まるだけで害はない（fail-safe）。
+          HOLD=false
+          if printf '%s' "$BODY" | tr -d '\r' | grep -qxF '<!-- codex-hold: true -->'; then
+            HOLD=true
+          fi
+          echo "hold=$HOLD" >> "$GITHUB_OUTPUT"
+          echo "codex_hold: $HOLD"
 
       - name: PR メタデータ取得 + ゲート判定
         id: gate
@@ -168,7 +186,8 @@ jobs:
     if: |
       needs.triage.outputs.eligible == 'true' &&
       needs.triage.outputs.verdict == 'APPROVE' &&
-      needs.triage.outputs.sha_match == 'true'
+      needs.triage.outputs.sha_match == 'true' &&
+      needs.triage.outputs.codex_hold != 'true'
     runs-on: ubuntu-latest
     steps:
       - name: squash マージ + head ブランチ削除
@@ -197,6 +216,39 @@ jobs:
             --match-head-commit "${REVIEWED_SHA}" \
             --repo "${{ github.repository }}"
           echo "✓ PR #${PR_NUMBER} の squash マージをキューに登録しました（レビュー対象: ${REVIEWED_SHA}）"
+
+  # Codex だけが REQUEST_CHANGES で、最終判定は APPROVE のとき。自動マージを
+  # 止めて人に回す（黙って止めると「マージされない」で迷うので理由を残す）。
+  codex-hold-notice:
+    needs: triage
+    if: |
+      needs.triage.outputs.eligible == 'true' &&
+      needs.triage.outputs.verdict == 'APPROVE' &&
+      needs.triage.outputs.sha_match == 'true' &&
+      needs.triage.outputs.codex_hold == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: needs-human-review ラベル付与 + 要確認コメント
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          # --repo が必須（このジョブは checkout しないため）。
+          gh label create needs-human-review \
+            --repo "${{ github.repository }}" \
+            -c E11D21 \
+            -d "Copilot が REQUEST_CHANGES。人手レビューと修正が必要" \
+            --force
+          gh pr edit "${PR_NUMBER}" \
+            --add-label needs-human-review \
+            --repo "${{ github.repository }}"
+          gh pr comment "${PR_NUMBER}" \
+            --repo "${{ github.repository }}" \
+            --body "⚠️ 最終判定は APPROVE ですが、Codex が REQUEST_CHANGES を返したため**自動マージを止めました**。Codex の指摘を確認して、問題なければ手動でマージしてください。修正を push すると再レビューされます。"
 
   auto-fix:
     needs: triage
