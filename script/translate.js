@@ -169,7 +169,10 @@ async function requestWithRetries(endpoint, model, prompt, itemCount, postFn, pr
     let retryCount = 0;
     let lastError = null;
 
-    while (retryCount <= API_MAX_RETRIES_429) {
+    // retryCount は 429 時のみ increment し、その直前に
+    // retryCount < API_MAX_RETRIES_429 を確認しているため、ループは必ず
+    // 内側の return/throw で終わる(while条件が false になって抜けることはない)。
+    while (true) {
         const result = await postFn(endpoint, prompt);
         if (result.ok) {
             return { ok: true, data: result.data };
@@ -193,8 +196,6 @@ async function requestWithRetries(endpoint, model, prompt, itemCount, postFn, pr
         console.error(`${providerLabel} API Error:`, result.errorData);
         throw new Error(`${providerLabel} API request failed with status ${result.status} for a batch of ${itemCount} items.`);
     }
-
-    return { ok: false, unsupportedModel: false, lastError };
 }
 
 function buildGeminiModelCandidates(configuredModel) {
@@ -228,14 +229,14 @@ async function requestGeminiWithFallback(prompt, itemCount) {
                 return result.data;
             }
 
+            // treat404AsUnsupportedModel=true で呼んでいるため、ここに来る
+            // result は常に unsupportedModel:true（404）。他の失敗は
+            // requestWithRetries 内で throw されるので、次の apiVersion/model を
+            // 試し続けるだけでよい。
             lastError = {
                 ...result.lastError,
                 version,
             };
-
-            if (!result.unsupportedModel) {
-                break;
-            }
         }
     }
 
@@ -245,13 +246,10 @@ async function requestGeminiWithFallback(prompt, itemCount) {
 
 async function requestOpenAI(prompt, itemCount) {
     const endpoint = 'https://api.openai.com/v1/chat/completions';
+    // treat404AsUnsupportedModel=false で呼んでいるため、requestWithRetries は
+    // 成功時以外は必ず throw する（エラーログ・例外メッセージも内部で済ませている）。
     const result = await requestWithRetries(endpoint, OPENAI_MODEL, prompt, itemCount, postOpenAI, 'OpenAI', false);
-    if (result.ok) {
-        return result.data;
-    }
-
-    console.error('OpenAI API Error:', result.lastError ? result.lastError.errorData : 'unknown');
-    throw new Error(`OpenAI API request failed with status ${result.lastError ? result.lastError.status : 'unknown'} for a batch of ${itemCount} items.`);
+    return result.data;
 }
 
 function extractCombinedTranslations(data) {
@@ -454,13 +452,6 @@ async function applyChunkTranslations(chunk, translatedMessages, targetLanguageL
     return translatedCount;
 }
 
-function logChunkItemMismatch(chunk, translatedMessages) {
-    console.error(`致命的エラー: doTranslate後のアイテム数(${translatedMessages.length})とチャンク内のアイテム数(${chunk.length})が一致しません。このチャンクはスキップされます。`);
-    chunk.forEach((originalItem) => {
-        console.log(`翻訳失敗 (致命的エラーのためスキップ): key "${originalItem.key}"`);
-    });
-}
-
 function logChunkError(error, chunk) {
     console.error(`チャンク翻訳中にエラーが発生しました: ${error.message}`);
     console.error('エラーが発生したチャンクのキー (最初の5件):');
@@ -484,18 +475,16 @@ async function translate(waitTranslateList, targetObject, targetLanguageLabel) {
         console.log(`チャンク ${Math.floor(i / TRANSLATION_CHUNK_SIZE) + 1} / ${Math.ceil(totalItems / TRANSLATION_CHUNK_SIZE)} を翻訳中 (${chunk.length} アイテム)...`);
 
         try {
+            // doTranslate は常に messagesInChunk と同じ長さの配列を返す
+            // (件数が合わない場合も内部で補正する)か throw するため、
+            // 長さの不一致は発生しない。
             const translatedMessages = await doTranslate(messagesInChunk, targetLanguageLabel);
-
-            if (translatedMessages.length === chunk.length) {
-                totalTranslatedCount += await applyChunkTranslations(
-                    chunk,
-                    translatedMessages,
-                    targetLanguageLabel,
-                    targetObject,
-                );
-            } else {
-                logChunkItemMismatch(chunk, translatedMessages);
-            }
+            totalTranslatedCount += await applyChunkTranslations(
+                chunk,
+                translatedMessages,
+                targetLanguageLabel,
+                targetObject,
+            );
         } catch (e) {
             logChunkError(e, chunk);
         }
@@ -637,7 +626,6 @@ module.exports = {
     collectMessages,
     resolveTranslatedText,
     applyChunkTranslations,
-    logChunkItemMismatch,
     logChunkError,
     translate,
     loadOldEnLanguages,

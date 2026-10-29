@@ -87,11 +87,10 @@ function isLikelyNonTranslatable(text) {
 		return true;
 	}
 
-	if (/^[A-Za-z0-9_.:/#?&=%@+-]+$/.test(source)) {
-		return true;
-	}
+	// ドット/コロン/アンダースコア区切りの識別子(例: "node.io")は上の
+	// 英数字+記号クラスに既に包含されるため、個別の判定は持たない。
 
-	if (/^[A-Za-z][A-Za-z0-9]*(?:[._:][A-Za-z0-9]+)+$/.test(source)) {
+	if (/^[A-Za-z0-9_.:/#?&=%@+-]+$/.test(source)) {
 		return true;
 	}
 
@@ -272,6 +271,7 @@ module.exports = {
 	shouldTranslate,
 	collectTasks,
 	setByPath,
+	main,
 };
 
 if (require.main === module) {

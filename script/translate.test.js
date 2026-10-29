@@ -21,7 +21,6 @@ const {
     collectMessages,
     resolveTranslatedText,
     applyChunkTranslations,
-    logChunkItemMismatch,
     logChunkError,
     translate: translateChunks,
     loadOldEnLanguages,
@@ -657,19 +656,7 @@ describe('applyChunkTranslations', () => {
     });
 });
 
-describe('logChunkItemMismatch / logChunkError', () => {
-    it('logChunkItemMismatch logs the mismatch and each skipped key without throwing', () => {
-        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        expect(() => logChunkItemMismatch(
-            [{ key: 'a', message: 'Hello' }],
-            ['only-one-but-translated-count-differs', 'extra'],
-        )).not.toThrow();
-        expect(errorSpy).toHaveBeenCalled();
-        errorSpy.mockRestore();
-        logSpy.mockRestore();
-    });
-
+describe('logChunkError', () => {
     it('logChunkError logs the error message and up to 5 chunk keys without throwing', () => {
         const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
         const chunk = Array.from({ length: 7 }, (_, i) => ({ key: `k${i}`, message: 'x' }));
