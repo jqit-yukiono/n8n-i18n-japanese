@@ -1,0 +1,32 @@
+script/translate-google.js
+  s_b963421d6961a5::t_5ccd7a8247c482 265-266,271
+script/translate-google.test.js
+  s_b963421d6961a5::t_242c43cab2aeb5 1-6,8-10
+  s_b963421d6961a5::t_015bbd206b8c51 168-247
+script/translate.test.js
+  s_b963421d6961a5::t_94e54c8021d7bd 121-199,218-257,262-263,266-267,269-324
+  s_b963421d6961a5::t_82e4bb57966eb5 13-18,22-26
+  s_b963421d6961a5::t_52521ee0a0be00 573,595-704,706,710,717-718,720-729,732-734
+  s_b963421d6961a5::t_acaa148bf1be24 574-594
+  s_b963421d6961a5::t_a68d775e91f9ca 200-217
+  s_b963421d6961a5::t_c062d24b3cc536 258-261,264-265,268
+  s_b963421d6961a5::t_55714bce5be868 705,707-709,711-716,719,730-731
+script/translate.js
+  s_b963421d6961a5::t_bb553a4237db5a 629-634,638-642
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2c4db00cebd6ac0df122d7050e7294ab05056c95",
+  "prompts": {},
+  "sessions": {
+    "s_b963421d6961a5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8dca65c0-af28-44ca-9039-a17718ff4d95",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jqit-yukiono <jqit.yuki.ono@gmail.com>"
+    }
+  }
+}
