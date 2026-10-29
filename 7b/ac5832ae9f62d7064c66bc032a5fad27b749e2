@@ -1,0 +1,53 @@
+script/list-untranslated.js
+  s_b963421d6961a5::t_e1c81dca2f62a7 20-37
+script/translate.test.js
+  s_b963421d6961a5::t_fa702888a813e4 1-12,14-18,20-21,29-53,56-178,187-214,399-429
+  s_b963421d6961a5::t_d85841242609ab 179-186
+  s_b963421d6961a5::t_3933c566130254 19
+  s_b963421d6961a5::t_d74d93649808a3 215-296,298,315-342,355-359
+  s_b963421d6961a5::t_0f6f5964b187bb 297,299-314
+  s_b963421d6961a5::t_4008849fee27f7 54-55
+  s_b963421d6961a5::t_8b6220d4f73cdf 360-373,378,380,384-398
+  s_b963421d6961a5::t_b99dc05eb53bf4 343-354
+  s_b963421d6961a5::t_abd9877a9cbae3 13,22-28
+  s_b963421d6961a5::t_478d0edd6aa21e 374-377,379,381-383
+script/translate.js
+  s_b963421d6961a5::t_6f167cb3370bee 635
+  s_b963421d6961a5::t_7cbc605a7767a8 15-20,22-25,27-30,40-45,49-50,52-53,56
+  s_b963421d6961a5::t_beb5526da32c14 596
+  s_b963421d6961a5::t_1f7017eb18efec 620,622-628,630-634,636-645
+  s_b963421d6961a5::t_44a082cdb00c7e 621,629
+package.json
+  s_b963421d6961a5::t_161e68e211870d 8-10
+  s_b963421d6961a5::t_4ff239ef741bb5 19-20,22
+script/list-untranslated.test.js
+  s_b963421d6961a5::t_735e2d18fae5fa 2-32
+  s_b963421d6961a5::t_585a9848440d8a 33-44
+  s_b963421d6961a5::t_f67971259d72a8 1
+script/translate-google.js
+  s_b963421d6961a5::t_312e60b3a14ce3 263-279
+script/translate-google.test.js
+  s_b963421d6961a5::t_1c5ec0b7a51d2b 1-87,89-91,93-95,97-99,101-105,108-110,113-116,119-121,124-127,129-158
+  s_b963421d6961a5::t_5b475553c8b1b4 88,92,96,100
+  s_b963421d6961a5::t_feb546250920af 106-107,111-112,117-118,122-123,128
+.gitignore
+  s_b963421d6961a5::t_0b1001d7bdb95e 32-34
+package-lock.json
+  s_b963421d6961a5::t_a2eb2fabfe305f 12-13,16-19,21-569,574,577-580,584,587-4595
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7bac5832ae9f62d7064c66bc032a5fad27b749e2",
+  "prompts": {},
+  "sessions": {
+    "s_b963421d6961a5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8dca65c0-af28-44ca-9039-a17718ff4d95",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jqit-yukiono <jqit.yuki.ono@gmail.com>"
+    }
+  }
+}
