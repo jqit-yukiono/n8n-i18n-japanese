@@ -10,7 +10,7 @@ const RETRY_DELAY_MS = Number(process.env.GOOGLE_TRANSLATE_RETRY_DELAY_MS || 150
 const REQUEST_DELAY_MS = Number(process.env.GOOGLE_TRANSLATE_REQUEST_DELAY_MS || 30);
 const TRANSLATE_CONCURRENCY = Math.max(1, Number(process.env.GOOGLE_TRANSLATE_CONCURRENCY || 4));
 const SAVE_EVERY = Math.max(1, Number(process.env.GOOGLE_TRANSLATE_SAVE_EVERY || 25));
-const DRY_RUN = /^1|true|yes$/i.test(String(process.env.GOOGLE_TRANSLATE_DRY_RUN || ''));
+const DRY_RUN = /^(1|true|yes)$/i.test(String(process.env.GOOGLE_TRANSLATE_DRY_RUN || ''));
 
 function sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
@@ -39,7 +39,7 @@ function protectText(source) {
 
 	let protectedText = source;
 	protectedText = protect(/\{[^{}]+\}/g, protectedText);
-	protectedText = protect(/<[^>]+>/g, protectedText);
+	protectedText = protect(/<[^>]{1,2000}>/g, protectedText);
 
 	return { protectedText, placeholders };
 }
@@ -61,14 +61,14 @@ function normalizeJapaneseText(text) {
 	let normalized = text;
 
 	// 和文や和文句読点の間に誤って入った半角スペースを除去
-	normalized = normalized.replace(new RegExp(`(${jpOrPunct})\\s+(${jpOrPunct})`, 'g'), '$1$2');
+	normalized = normalized.replace(new RegExp(String.raw`(${jpOrPunct})\s+(${jpOrPunct})`, 'g'), '$1$2');
 
 	// 全角かっこ内側の不要スペースを除去
 	normalized = normalized
 		.replace(/（\s+/g, '（')
-		.replace(/\s+）/g, '）')
+		.replace(/\s{1,200}）/g, '）')
 		.replace(/「\s+/g, '「')
-		.replace(/\s+」/g, '」');
+		.replace(/\s{1,200}」/g, '」');
 
 	return normalized.trim();
 }
@@ -87,7 +87,7 @@ function isLikelyNonTranslatable(text) {
 		return true;
 	}
 
-	if (/^[A-Za-z0-9_.:/#?&=%@+\-]+$/.test(source)) {
+	if (/^[A-Za-z0-9_.:/#?&=%@+-]+$/.test(source)) {
 		return true;
 	}
 
@@ -95,7 +95,7 @@ function isLikelyNonTranslatable(text) {
 		return true;
 	}
 
-	if (/^[0-9\s.,:;!?()\[\]{}\-_/|]+$/.test(source)) {
+	if (/^[0-9\s.,:;!?()[\]{}\-_/|]+$/.test(source)) {
 		return true;
 	}
 
@@ -260,7 +260,20 @@ async function main() {
 	}
 }
 
-main().catch((error) => {
-	console.error(error);
-	process.exitCode = 1;
-});
+module.exports = {
+	sleep,
+	protectText,
+	restoreText,
+	normalizeJapaneseText,
+	isLikelyNonTranslatable,
+	shouldTranslate,
+	collectTasks,
+	setByPath,
+};
+
+if (require.main === module) {
+	main().catch((error) => {
+		console.error(error);
+		process.exitCode = 1;
+	});
+}

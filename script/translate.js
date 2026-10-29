@@ -1,6 +1,7 @@
 require('dotenv').config()
-const fs = require('fs');
-const path = require('path'); // path モジュールをインポート
+const fs = require('node:fs');
+const path = require('node:path'); // path モジュールをインポート
+const crypto = require('node:crypto');
 
 // AI provider settings from environment variables
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -11,22 +12,24 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 const API_MAX_RETRIES_429 = Number(process.env.API_MAX_RETRIES_429 || process.env.GEMINI_MAX_RETRIES_429 || '6');
 const API_MIN_RETRY_MS = Number(process.env.API_MIN_RETRY_MS || process.env.GEMINI_MIN_RETRY_MS || '8000');
 
-if (AI_PROVIDER === 'openai' && !OPENAI_API_KEY) {
-    console.error('環境変数 OPENAI_API_KEY を設定してください。');
-    process.exit(1);
+// プロセス終了を伴うため、実際に CLI として起動されたときだけ呼び出す（require.main 配下）。
+function validateProviderConfig() {
+    if (AI_PROVIDER === 'openai' && !OPENAI_API_KEY) {
+        console.error('環境変数 OPENAI_API_KEY を設定してください。');
+        process.exit(1);
+    }
+
+    if (AI_PROVIDER === 'gemini' && !GEMINI_API_KEY) {
+        console.error('環境変数 GEMINI_API_KEY を設定してください。');
+        process.exit(1);
+    }
+
+    if (!['openai', 'gemini'].includes(AI_PROVIDER)) {
+        console.error(`未対応のAIプロバイダです: ${AI_PROVIDER} (openai または gemini を指定してください)`);
+        process.exit(1);
+    }
 }
 
-if (AI_PROVIDER === 'gemini' && !GEMINI_API_KEY) {
-    console.error('環境変数 GEMINI_API_KEY を設定してください。');
-    process.exit(1);
-}
-
-if (!['openai', 'gemini'].includes(AI_PROVIDER)) {
-    console.error(`未対応のAIプロバイダです: ${AI_PROVIDER} (openai または gemini を指定してください)`);
-    process.exit(1);
-}
-
-let targetLanguages;
 const defaultTargetLanguages = [
     {
         "name": "ja", // Or "ja-JP" if you prefer
@@ -34,28 +37,29 @@ const defaultTargetLanguages = [
     }
 ];
 
-if (process.env.TARGET_LANGUAGES) {
+function resolveTargetLanguages() {
+    if (!process.env.TARGET_LANGUAGES) {
+        console.log("環境変数 TARGET_LANGUAGES が未設定です。デフォルトの翻訳対象言語（日本語）を使用します。");
+        return defaultTargetLanguages;
+    }
+
     try {
         const parsedLanguages = JSON.parse(process.env.TARGET_LANGUAGES);
         if (Array.isArray(parsedLanguages) && parsedLanguages.every(lang => lang && typeof lang.name === 'string' && typeof lang.label === 'string')) {
-            targetLanguages = parsedLanguages;
-            console.log("環境変数 TARGET_LANGUAGES から翻訳対象言語を読み込みました:", targetLanguages.map(l => l.label).join(', '));
-        } else {
-            console.warn("環境変数 TARGET_LANGUAGES の形式が正しくありません。デフォルトの翻訳対象言語（日本語）を使用します。");
-            targetLanguages = defaultTargetLanguages;
+            console.log("環境変数 TARGET_LANGUAGES から翻訳対象言語を読み込みました:", parsedLanguages.map(l => l.label).join(', '));
+            return parsedLanguages;
         }
+        console.warn("環境変数 TARGET_LANGUAGES の形式が正しくありません。デフォルトの翻訳対象言語（日本語）を使用します。");
+        return defaultTargetLanguages;
     } catch (e) {
         console.error("環境変数 TARGET_LANGUAGES のJSONパースに失敗しました。デフォルトの翻訳対象言語（日本語）を使用します。", e);
-        targetLanguages = defaultTargetLanguages;
+        return defaultTargetLanguages;
     }
-} else {
-    targetLanguages = defaultTargetLanguages;
-    console.log("環境変数 TARGET_LANGUAGES が未設定です。デフォルトの翻訳対象言語（日本語）を使用します。");
 }
 
 // 翻訳結果を分割するための区切り文字（API呼び出しごとにユニークにする）
 function generateUniqueSeparator() {
-    return `__TRANSLATION_ITEM_SEPARATOR_${Date.now()}__${Math.random().toString(36).substring(2, 15)}__`;
+    return `__TRANSLATION_ITEM_SEPARATOR_${Date.now()}__${crypto.randomUUID()}__`;
 }
 
 function parseApiErrorText(errorText) {
@@ -320,9 +324,9 @@ ${language}への翻訳結果群 (各翻訳を「${uniqueSeparator}」で区切�
 
     if (userPromptTemplate) {
         prompt = userPromptTemplate
-            .replace(/\$\{language\}/g, language)
-            .replace(/\$\{uniqueSeparator\}/g, uniqueSeparator)
-            .replace(/\$\{textsToTranslate\}/g, textsToTranslate);
+            .replaceAll('${language}', language)
+            .replaceAll('${uniqueSeparator}', uniqueSeparator)
+            .replaceAll('${textsToTranslate}', textsToTranslate);
     } else {
         prompt = defaultPromptTemplate;
     }
@@ -338,19 +342,19 @@ ${language}への翻訳結果群 (各翻訳を「${uniqueSeparator}」で区切�
 
         // 後処理用のパターン定義
         const patternsToRemove = [
-            /^(承知しました|はい、分かりました|了解しました|かしこまりました)[、。]?\s*.*?翻訳します[：。\s]*/i,
-            /^(承知しました|はい、分かりました|了解しました|かしこまりました)[、。]?\s*.*?翻訳結果です[：。\s]*/i,
+            /^(承知しました|はい、分かりました|了解しました|かしこまりました)[、。]?.*?翻訳します[：。\s]*/is,
+            /^(承知しました|はい、分かりました|了解しました|かしこまりました)[、。]?.*?翻訳結果です[：。\s]*/is,
             /^(承知しました|はい、分かりました|了解しました|かしこまりました)[、。]?\s*/i,
-            /.*?翻訳結果は以下の通りです[：。\s]*/i,
-            /.*?翻訳は以下の通りです[：。\s]*/i,
-            /.*?翻訳しました[：。\s]*/i,
+            /^.*?翻訳結果は以下の通りです[：。\s]*/is,
+            /^.*?翻訳は以下の通りです[：。\s]*/is,
+            /^.*?翻訳しました[：。\s]*/is,
             /^以下に翻訳します[：。\s]*/i,
             /^翻訳結果[：。\s]*/i,
             /^(Okay|Sure|Alright|Understood|Got it),?\s*here's the translation:?\s*/i,
             /^(Okay|Sure|Alright|Understood|Got it),?\s*I will translate that for you:?\s*/i,
             /^(Okay|Sure|Alright|Understood|Got it),?\s*/i,
             /^ITEM_START\s*\[\d+\]\s*/i, // ITEM_START [番号] が残っていたら削除
-            /\s*ITEM_END\s*$/i,        // ITEM_END が残っていたら削除
+            /\s{0,200}ITEM_END\s*$/i,  // ITEM_END が残っていたら削除
             /^\[\d+\]\s*/,             // [番号] のみが残っていたら削除
         ];
         
@@ -513,19 +517,74 @@ function collectMessages(oldSourceLanguages, newSourceLanguages, targetLanguages
         let currentKey = parentKey ? parentKey + "##" + key : key;
         if (newSourceLanguages[key] instanceof Object) {
             collectMessages(oldSourceLanguages[key]  || {}, newSourceLanguages[key], targetLanguages[key] || {}, currentKey, waitTranslateList);
-        } else {
-            if (targetLanguages[key] === undefined
-                || oldSourceLanguages[key] === undefined
-                || oldSourceLanguages[key] !== newSourceLanguages[key]) {
-                waitTranslateList.push({
-                    key: currentKey,
-                    message: newSourceLanguages[key]
-                })
-            }
+        } else if (targetLanguages[key] === undefined
+            || oldSourceLanguages[key] === undefined
+            || oldSourceLanguages[key] !== newSourceLanguages[key]) {
+            waitTranslateList.push({
+                key: currentKey,
+                message: newSourceLanguages[key]
+            })
         }
     }
 }
 
+
+function loadOldEnLanguages(localEnFilePath) {
+    if (!fs.existsSync(localEnFilePath)) {
+        console.warn(`${localEnFilePath} が見つかりません。空のオブジェクトとして扱います。`);
+        return {};
+    }
+    try {
+        return require(localEnFilePath); // ローカルの古い英語言語ファイル
+    } catch (e) {
+        console.warn(`${localEnFilePath} の読み込みに失敗しました。空のオブジェクトとして扱います。エラー:`, e);
+        return {};
+    }
+}
+
+function loadExistingTargetJson(fileName) {
+    if (!fs.existsSync(fileName)) {
+        return {};
+    }
+    try {
+        return JSON.parse(fs.readFileSync(fileName, "utf8")); // 既存の翻訳ファイルを読み込み
+    } catch (e) {
+        console.error(`${fileName} の読み込みまたは解析に失敗しました。空のオブジェクトとして扱います。エラー:`, e);
+        return {};
+    }
+}
+
+function sortTargetJsonByKeyOrder(newEnLanguages, targetJson) {
+    const sortedTargetLanguages = {};
+    for (const key in newEnLanguages) { // 最新の英語ファイルのキー順でソート
+        if (targetJson[key] !== undefined) {
+            sortedTargetLanguages[key] = targetJson[key];
+        }
+    }
+    return sortedTargetLanguages;
+}
+
+async function processTargetLanguage(targetLanguage, oldEnLanguages, newEnLanguages) {
+    // 翻訳ファイルのパスを __dirname (scriptディレクトリ) からの相対パスで解決
+    const fileName = path.join(__dirname, '..', 'languages', `${targetLanguage.name}.json`);
+    const targetJson = loadExistingTargetJson(fileName);
+
+    const waitTranslateList = [] // 翻訳待ちリスト
+    collectMessages(oldEnLanguages, newEnLanguages, targetJson, "", waitTranslateList); // 翻訳が必要なアイテムを収集
+
+    if (waitTranslateList.length === 0) {
+        console.log(`${targetLanguage.label} の翻訳対象アイテムはありませんでした。既存の翻訳ファイルを保持します。`);
+        return; // 次の言語へ
+    }
+
+    await translate(waitTranslateList, targetJson, targetLanguage.label); // 翻訳処理を実行
+
+    // newEnLanguages のキー順序に基づいて targetJson をソートする
+    const sortedTargetLanguages = sortTargetJsonByKeyOrder(newEnLanguages, targetJson);
+    // 翻訳後の言語ファイルを書き出す
+    fs.writeFileSync(fileName, JSON.stringify(sortedTargetLanguages, null, 4));
+    console.log(`${fileName} にソート済みの翻訳を書き込みました。`);
+}
 
 async function run(){
     const activeModel = AI_PROVIDER === 'openai' ? OPENAI_MODEL : GEMINI_MODEL;
@@ -533,17 +592,9 @@ async function run(){
     console.log(`使用するモデル: ${activeModel}`);
 
     const localEnFilePath = path.join(__dirname, "en.json"); // スクリプトと同じディレクトリの en.json
-    let oldEnLanguages = {};
-    if (fs.existsSync(localEnFilePath)) {
-        try {
-            oldEnLanguages = require(localEnFilePath); // ローカルの古い英語言語ファイル
-        } catch (e) {
-            console.warn(`${localEnFilePath} の読み込みに失敗しました。空のオブジェクトとして扱います。エラー:`, e);
-        }
-    } else {
-        console.warn(`${localEnFilePath} が見つかりません。空のオブジェクトとして扱います。`);
-    }
-    
+    const oldEnLanguages = loadOldEnLanguages(localEnFilePath);
+    const targetLanguages = resolveTargetLanguages();
+
     const localeSourceUrls = [
         'https://raw.githubusercontent.com/n8n-io/n8n/master/packages/frontend/@n8n/i18n/src/locales/en.json',
         'https://raw.githubusercontent.com/n8n-io/n8n/main/packages/frontend/@n8n/i18n/src/locales/en.json',
@@ -559,56 +610,36 @@ async function run(){
         });
 
     for (const targetLanguage of targetLanguages) {
-        let targetJson = {}; // ターゲット言語のJSONオブジェクト
-        // 翻訳ファイルのパスを __dirname (scriptディレクトリ) からの相対パスで解決
-        let fileName = path.join(__dirname, '..', 'languages', `${targetLanguage.name}.json`); 
-        
-        if (fs.existsSync(fileName)){
-            try {
-                targetJson = JSON.parse(fs.readFileSync(fileName, "utf8")); // 既存の翻訳ファイルを読み込み
-            } catch (e) {
-                console.error(`${fileName} の読み込みまたは解析に失敗しました。空のオブジェクトとして扱います。エラー:`, e);
-                targetJson = {}; // エラー時は空のオブジェクト
-            }
-        }
-        const waitTranslateList = [] // 翻訳待ちリスト
-        collectMessages(oldEnLanguages, newEnLanguages , targetJson, "", waitTranslateList); // 翻訳が必要なアイテムを収集
-        
-        if (waitTranslateList.length === 0) {
-            console.log(`${targetLanguage.label} の翻訳対象アイテムはありませんでした。既存の翻訳ファイルを保持します。`);
-            // 既存のファイルをそのまま保存し直すか、何もしないか。ここでは何もしない。
-            // もし、キーのソートだけは行いたい場合は、以下のソート処理を有効化する。
-            /*
-            const sortedTargetLanguages = {};
-            for (const key in newEnLanguages) {
-                if (targetJson[key] !== undefined) {
-                    sortedTargetLanguages[key] = targetJson[key];
-                }
-            }
-            fs.writeFileSync(fileName, JSON.stringify(sortedTargetLanguages, null, 4));
-            */
-            continue; // 次の言語へ
-        }
-
-        await translate(waitTranslateList, targetJson, targetLanguage.label); // 翻訳処理を実行
-        
-        // newEnLanguages のキー順序に基づいて targetJson をソートする
-        const sortedTargetLanguages = {};
-        for (const key in newEnLanguages) { // 最新の英語ファイルのキー順でソート
-            if (targetJson[key] !== undefined) {
-                sortedTargetLanguages[key] = targetJson[key];
-            } else if (oldEnLanguages[key] !== undefined && targetJson[key] === undefined) {
-                // 翻訳されなかったが、元々古い翻訳があった場合はそれを引き継ぐか検討。
-                // ここでは、翻訳されなかったものは含めない方針。
-            }
-        }
-        // 翻訳後の言語ファイルを書き出す
-        fs.writeFileSync(fileName, JSON.stringify(sortedTargetLanguages, null, 4));
-        console.log(`${fileName} にソート済みの翻訳を書き込みました。`);
+        await processTargetLanguage(targetLanguage, oldEnLanguages, newEnLanguages);
     }
     // ローカルの英語言語ファイルを最新版に更新
     fs.writeFileSync(localEnFilePath, JSON.stringify(newEnLanguages, null, 4));
     console.log(`${localEnFilePath} を最新版に更新しました。`);
 }
 
-run();
+module.exports = {
+    validateProviderConfig,
+    generateUniqueSeparator,
+    parseApiErrorText,
+    extractRetryDelayMs,
+    buildOpenAIRequestBody,
+    buildGeminiRequestBody,
+    buildGeminiModelCandidates,
+    extractCombinedTranslations,
+    doTranslate,
+    putObjectValue,
+    collectMessages,
+    loadOldEnLanguages,
+    loadExistingTargetJson,
+    sortTargetJsonByKeyOrder,
+    processTargetLanguage,
+    resolveTargetLanguages,
+};
+
+if (require.main === module) {
+    validateProviderConfig();
+    run().catch((error) => {
+        console.error(error);
+        process.exitCode = 1;
+    });
+}

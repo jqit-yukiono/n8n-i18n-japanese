@@ -1,14 +1,6 @@
 // List keys whose ja value still equals the en value (likely untranslated).
-const fs = require('fs');
-const path = require('path');
-
-const enPath = path.join(__dirname, 'en.json');
-const jaPath = path.join(__dirname, '..', 'languages', 'ja.json');
-
-const enRaw = fs.readFileSync(enPath, 'utf8');
-const jaRaw = fs.readFileSync(jaPath, 'utf8');
-const enData = JSON.parse(enRaw);
-const jaData = JSON.parse(jaRaw);
+const fs = require('node:fs');
+const path = require('node:path');
 
 function walk(enObj, jaObj, prefix) {
     const hits = [];
@@ -18,17 +10,29 @@ function walk(enObj, jaObj, prefix) {
         const fullKey = prefix ? `${prefix}.${key}` : key;
         if (typeof enVal === 'object' && enVal !== null) {
             hits.push(...walk(enVal, jaVal, fullKey));
-        } else {
-            if (typeof jaVal === 'string' && enVal === jaVal) {
-                hits.push(fullKey);
-            }
+        } else if (typeof jaVal === 'string' && enVal === jaVal) {
+            hits.push(fullKey);
         }
     }
     return hits;
 }
 
-const untranslated = walk(enData, jaData, '');
-console.log('untranslated count: ' + untranslated.length);
-for (let i = 0; i < untranslated.length; i++) {
-    console.log('- ' + untranslated[i]);
+function run() {
+    const enPath = path.join(__dirname, 'en.json');
+    const jaPath = path.join(__dirname, '..', 'languages', 'ja.json');
+
+    const enData = JSON.parse(fs.readFileSync(enPath, 'utf8'));
+    const jaData = JSON.parse(fs.readFileSync(jaPath, 'utf8'));
+
+    const untranslated = walk(enData, jaData, '');
+    console.log('untranslated count: ' + untranslated.length);
+    for (const key of untranslated) {
+        console.log('- ' + key);
+    }
+}
+
+module.exports = { walk, run };
+
+if (require.main === module) {
+    run();
 }
