@@ -1,0 +1,29 @@
+script/translate.test.js
+  s_b963421d6961a5::t_cff9a3e87a0a94 659
+script/translate-google.js
+  s_b963421d6961a5::t_bcd01f4ea33ec3 90-91,93
+  s_b963421d6961a5::t_011ecb38dc2d59 274
+script/translate-google.main.test.js
+  s_b963421d6961a5::t_6ac93dbfa90fe6 1-98
+script/translate.js
+  s_b963421d6961a5::t_1ef599945f231b 478-480,482-487
+  s_b963421d6961a5::t_a3bc348b5a6046 232-235
+  s_b963421d6961a5::t_8b1a58a41e5c2a 249-250,252
+  s_b963421d6961a5::t_334b957880f35f 172-175
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3b8fedb4c9aec4f2acf1bc507d505d808411f13a",
+  "prompts": {},
+  "sessions": {
+    "s_b963421d6961a5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8dca65c0-af28-44ca-9039-a17718ff4d95",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jqit-yukiono <jqit.yuki.ono@gmail.com>"
+    }
+  }
+}
