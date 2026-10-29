@@ -1,0 +1,36 @@
+.gitignore
+  s_b963421d6961a5::t_00a21ed767c582 29-31
+script/list-untranslated.js
+  s_b963421d6961a5::t_1a74943e7abe96 2-3
+  s_b963421d6961a5::t_1eb14cc8d9c20f 21-22
+  s_b963421d6961a5::t_2e3c4c9d2f8711 30-31
+script/translate-google.js
+  s_b963421d6961a5::t_6eab18cb582e4d 42
+  s_b963421d6961a5::t_7fefef170d380b 64,69,71
+  s_b963421d6961a5::t_94a0cae2ef6417 90
+  s_b963421d6961a5::t_7645d992c77d7c 98
+  s_b963421d6961a5::t_604f79a4babb22 13
+script/translate.js
+  s_b963421d6961a5::t_8fe7689e9ead7d 324-326
+  s_b963421d6961a5::t_c1b29e21b76e2c 517-523
+  s_b963421d6961a5::t_bb9685143a23c9 2-4
+  s_b963421d6961a5::t_9b54b40075b5ff 529-585,592-593,609,616-619
+  s_b963421d6961a5::t_f7dd528cc8d1b4 59
+  s_b963421d6961a5::t_4aedc767cdc587 342-343,345-347,354
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7c050691fa49722ec53882585f855cec3887bca8",
+  "prompts": {},
+  "sessions": {
+    "s_b963421d6961a5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8dca65c0-af28-44ca-9039-a17718ff4d95",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "jqit-yukiono <jqit.yuki.ono@gmail.com>"
+    }
+  }
+}
