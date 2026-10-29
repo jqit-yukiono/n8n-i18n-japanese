@@ -56,3 +56,4 @@ if ! curl -fsS -X POST -H 'Content-Type: application/json' \
 fi
 
 echo "slack-notify: posted"
+# jenkins-cli PR #267 (npm test --coverage -> sonar-scanner) の動作確認用（使い捨て・マージしない）
