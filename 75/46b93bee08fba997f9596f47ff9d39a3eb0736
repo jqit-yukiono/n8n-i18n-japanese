@@ -1,0 +1,19 @@
+docs/fork-differences.md
+  s_2b1b1e3802c115::t_31def5d8e617f6 83-84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7546b93bee08fba997f9596f47ff9d39a3eb0736",
+  "prompts": {},
+  "sessions": {
+    "s_2b1b1e3802c115": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6d927edb-94bc-4293-8f84-456717642ab8",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "jqit-yukiono <jqit.yuki.ono@gmail.com>"
+    }
+  }
+}
