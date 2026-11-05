@@ -67,9 +67,9 @@ jobs:
           set -euo pipefail
           VERDICT=$(printf '%s' "$BODY" \
             | tr -d '\r' \
-            | grep -oE '^VERDICT: (APPROVE|REQUEST_CHANGES)$' \
+            | { grep -oE '^VERDICT: (APPROVE|REQUEST_CHANGES)$' || true; } \
             | tail -1 \
-            | awk '{print $2}')
+            | awk '{print $2}' || true)
           echo "verdict=${VERDICT:-UNKNOWN}" >> "$GITHUB_OUTPUT"
           echo "VERDICT: ${VERDICT:-UNKNOWN}"
 
@@ -84,7 +84,10 @@ jobs:
           # 人に回す。マーカーは「止める」方向にしか働かないので、PR タイトル
           # 等から偽装されても自動マージが止まるだけで害はない（fail-safe）。
           HOLD=false
-          if printf '%s' "$BODY" | tr -d '\r' | grep -qxF '<!-- codex-hold: true -->'; then
+          # grep -q は一致で先に終わり、上流が SIGPIPE で落ちて pipefail が偽に
+          # しうる。一度変数に取ってから here-string で渡し、最後まで読ませる。
+          NORMALIZED=$(printf '%s' "$BODY" | tr -d '\r')
+          if grep -qxF '<!-- codex-hold: true -->' <<<"$NORMALIZED"; then
             HOLD=true
           fi
           echo "hold=$HOLD" >> "$GITHUB_OUTPUT"
@@ -139,7 +142,7 @@ jobs:
           # までの間にも push が入りうるため、自動マージ/自動修正は
           # reviewed SHA == 現在の head の場合だけに限定する（実機レビュー
           # 指摘、minewatch/eventwatch 向け PR #154 と同じ設計）。
-          REVIEWED_SHA=$(printf '%s' "$LINE2" | grep -oE '^<!-- reviewed-sha: [0-9a-f]{7,40} -->$' | grep -oE '[0-9a-f]{7,40}' || true)
+          REVIEWED_SHA=$(printf '%s' "$LINE2" | tr -d '\r' | grep -oE '^<!-- reviewed-sha: [0-9a-f]{7,40} -->$' | grep -oE '[0-9a-f]{7,40}' || true)
           SHA_MATCH=false
           if [ -n "$REVIEWED_SHA" ] && [ "$REVIEWED_SHA" = "$CURRENT_SHA" ]; then
             SHA_MATCH=true
