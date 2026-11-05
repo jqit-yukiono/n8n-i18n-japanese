@@ -19,6 +19,9 @@ name: Copilot レビュー後の自動マージ / 自動修正
 "on":
   issue_comment:
     types: [created]
+  # 自動マージを予約したあとに追加の push があったら、予約を外す（cancel-auto-merge）。
+  pull_request:
+    types: [synchronize]
 
 permissions:
   contents: write
@@ -27,7 +30,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: copilot-handler-pr-${{ github.event.issue.number }}
+  group: copilot-handler-pr-${{ github.event.issue.number || github.event.pull_request.number }}
   cancel-in-progress: false
 
 env:
@@ -181,6 +184,25 @@ jobs:
           echo "retry_count=$COUNT" >> "$GITHUB_OUTPUT"
           echo "Jenkins コメント数: $COUNT (上限: ${{ env.MAX_RETRY }})"
 
+  # 自動マージを予約したあとに追加の push があると、GitHub は予約を残したまま
+  # 必須チェックが通れば未レビューの head をマージしてしまう。push のたびに
+  # 予約を外し、新しい head のレビューが APPROVE になって初めて再予約させる。
+  cancel-auto-merge:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: 自動マージの予約を外す
+        env:
+          # 予約と同じトークンで外す（GITHUB_TOKEN は PAT が付けた予約を外せないことがある）。
+          GH_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh pr merge "${PR_NUMBER}" --disable-auto --repo "${{ github.repository }}" || true
+          echo "PR #${PR_NUMBER}: 追加の push があったので、自動マージの予約を外した（無ければ何もしない）"
+
   auto-merge:
     needs: triage
     if: |
@@ -231,6 +253,14 @@ jobs:
       issues: write
       pull-requests: write
     steps:
+      - name: 以前の APPROVE で予約済みの自動マージを外す
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          gh pr merge "${PR_NUMBER}" --disable-auto --repo "${{ github.repository }}" || true
+
       - name: needs-human-review ラベル付与 + 要確認コメント
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
