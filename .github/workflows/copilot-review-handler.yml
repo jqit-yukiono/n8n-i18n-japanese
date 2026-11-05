@@ -192,8 +192,8 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
-      # gh pr merge が PR のコミットを読むので contents: read も要る。
-      contents: read
+      # 自動マージの予約を外す GraphQL(disablePullRequestAutoMerge)は contents: write が要る。
+      contents: write
       pull-requests: write
     steps:
       - name: 自動マージの予約を外す
@@ -262,6 +262,8 @@ jobs:
       needs.triage.outputs.codex_hold == 'true'
     runs-on: ubuntu-latest
     permissions:
+      # 予約を外す gh pr merge --disable-auto が contents: write を要する。
+      contents: write
       issues: write
       pull-requests: write
     steps:
