@@ -192,6 +192,8 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
+      # gh pr merge が PR のコミットを読むので contents: read も要る。
+      contents: read
       pull-requests: write
     steps:
       - name: 自動マージの予約を外す
