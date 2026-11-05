@@ -30,7 +30,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: copilot-handler-pr-${{ github.event.issue.number || github.event.pull_request.number }}
+  group: copilot-handler-${{ github.event_name }}-pr-${{ github.event.issue.number || github.event.pull_request.number }}
   cancel-in-progress: false
 
 env:
@@ -44,6 +44,7 @@ jobs:
   triage:
     # 本文の先頭がマーカー、かつ Jenkins ボットの投稿だけを対象にする。
     if: |
+      github.event_name == 'issue_comment' &&
       github.event.issue.pull_request != null &&
       startsWith(github.event.comment.body, '## AI統合レビュー (n8n-i18n-japanese 翻訳観点)') &&
       github.event.comment.user.login == vars.JENKINS_BOT_USERNAME
@@ -200,7 +201,16 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          gh pr merge "${PR_NUMBER}" --disable-auto --repo "${{ github.repository }}" || true
+          if ! OUT=$(gh pr merge "${PR_NUMBER}" --disable-auto \
+            --repo "${{ github.repository }}" 2>&1); then
+            # 予約が無いだけなら正常。それ以外（権限不足・API 障害）は見えるようにする。
+            if printf '%s' "$OUT" | grep -qiE 'not enabled|already'; then
+              echo "自動マージの予約は無かった"
+            else
+              echo "::error::自動マージの予約を外せなかった: $OUT"
+              exit 1
+            fi
+          fi
           echo "PR #${PR_NUMBER}: 追加の push があったので、自動マージの予約を外した（無ければ何もしない）"
 
   auto-merge:
@@ -259,7 +269,15 @@ jobs:
           PR_NUMBER: ${{ github.event.issue.number }}
         run: |
           set -euo pipefail
-          gh pr merge "${PR_NUMBER}" --disable-auto --repo "${{ github.repository }}" || true
+          if ! OUT=$(gh pr merge "${PR_NUMBER}" --disable-auto \
+            --repo "${{ github.repository }}" 2>&1); then
+            # 予約が無いだけなら正常。それ以外（権限不足・API 障害）は見えるようにする。
+            if printf '%s' "$OUT" | grep -qiE 'not enabled|already'; then
+              echo "自動マージの予約は無かった"
+            else
+              echo "::warning::自動マージの予約を外せなかった（人が確認する）: $OUT"
+            fi
+          fi
 
       - name: needs-human-review ラベル付与 + 要確認コメント
         env:
