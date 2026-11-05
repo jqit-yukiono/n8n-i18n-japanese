@@ -283,7 +283,9 @@ jobs:
             --body "⚠️ 最終判定は APPROVE ですが、Codex が REQUEST_CHANGES を返したため**自動マージを止めました**。Codex の指摘を確認して、問題なければ手動でマージしてください。修正を push すると再レビューされます。"
 
       - name: 以前の APPROVE で予約済みの自動マージを外す
-        # 通知(ラベル・コメント)を出したあとに実行する。失敗したらジョブを失敗にして気づけるようにする。
+        # 通知(ラベル・コメント)のあとに実行し、通知が失敗しても必ず走らせる。
+        # 解除に失敗したらジョブを失敗にして気づけるようにする。
+        if: always()
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.issue.number }}
