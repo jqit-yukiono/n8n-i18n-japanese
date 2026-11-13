@@ -9569,6 +9569,7 @@
   "agents.builder.advanced.reasoning.unsupportedHint": "このモデルは推論をサポートしていません",
   "agents.builder.advanced.reasoning.noModelHint": "モデルが選択されていません",
   "agents.builder.advanced.reasoningEffort.label": "推論の努力度",
+  "agents.builder.advanced.promptCaching.label": "プロンプトキャッシング",
   "agents.builder.advanced.promptCaching.hint": "プロンプトの繰り返し部分をキャッシュして、レイテンシとコストを削減する",
   "agents.builder.advanced.promptCachingTtl.label": "キャッシュ期間",
   "agents.builder.advanced.concurrency.label": "ツール呼び出しの並列数",
